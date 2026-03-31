@@ -46,24 +46,24 @@ interface PortfolioItem {
 const SERVICES: Service[] = [
   {
     id: '01',
-    title: 'Custom Web Development',
-    description: 'Membangun ekosistem digital yang responsif dan cepat, mulai dari landing page hingga sistem manajemen kompleks.',
-    icon: <Code2 className="w-6 h-6" />,
-    features: ['Responsive Design', 'Fast Performance', 'Custom Logic']
+    title: 'Landing Page & Company Profile',
+    description: 'Solusi tepat untuk membangun identitas digital bisnis Anda dengan desain yang profesional dan responsif.',
+    icon: <Globe className="w-6 h-6" />,
+    features: ['Responsive Design', 'SEO Optimized', 'Fast Loading']
   },
   {
     id: '02',
-    title: 'AI-Powered Systems',
-    description: 'Integrasi kecerdasan buatan untuk meningkatkan interaksi pengguna dan efisiensi bisnis.',
-    icon: <Cpu className="w-6 h-6" />,
-    features: ['Virtual Try-On (VTX)', 'AI Smart Mirror', 'Chatbots']
+    title: 'E-Commerce & Online Store',
+    description: 'Kembangkan bisnis Anda dengan toko online yang aman, mudah dikelola, dan terintegrasi dengan sistem pembayaran.',
+    icon: <ShoppingBag className="w-6 h-6" />,
+    features: ['Payment Gateway', 'Inventory Management', 'User Friendly']
   },
   {
     id: '03',
-    title: 'WebGIS & Land Surveying',
-    description: 'Solusi pemetaan berbasis web yang menggabungkan keahlian geologi dan teknologi digital.',
-    icon: <MapIcon className="w-6 h-6" />,
-    features: ['Spatial Visualization', 'Regional Mapping', 'Geology']
+    title: 'Custom Web Application',
+    description: 'Sistem berbasis web kustom untuk kebutuhan bisnis yang spesifik, mulai dari POS hingga sistem manajemen internal.',
+    icon: <Code2 className="w-6 h-6" />,
+    features: ['Custom Logic', 'Scalable System', 'Secure Database']
   }
 ];
 
@@ -119,95 +119,119 @@ const Marquee = () => (
   </div>
 );
 
+const AbstractVisual = () => (
+  <div className="relative w-full aspect-square max-w-2xl mx-auto">
+    <div className="absolute inset-0 technical-grid opacity-20 rounded-3xl" />
+    <div className="absolute inset-0 flex items-center justify-center">
+      <motion.div 
+        animate={{ 
+          rotate: 360,
+          scale: [1, 1.1, 1],
+        }}
+        transition={{ 
+          duration: 20, 
+          repeat: Infinity, 
+          ease: "linear" 
+        }}
+        className="relative w-4/5 h-4/5 border border-brand-primary/20 rounded-full"
+      >
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-brand-primary rounded-full shadow-[0_0_20px_rgba(99,102,241,0.6)]" />
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-2 h-2 bg-brand-accent rounded-full" />
+      </motion.div>
+      
+      <motion.div 
+        animate={{ 
+          rotate: -360,
+        }}
+        transition={{ 
+          duration: 15, 
+          repeat: Infinity, 
+          ease: "linear" 
+        }}
+        className="absolute w-3/5 h-3/5 border border-brand-dark/10 rounded-full"
+      >
+        <div className="absolute top-1/2 left-0 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-brand-dark rounded-full" />
+      </motion.div>
+
+      <div className="absolute inset-0 flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1 }}
+          className="w-32 h-32 bg-white rounded-2xl shadow-2xl flex items-center justify-center border border-brand-dark/5"
+        >
+          <Zap className="w-12 h-12 text-brand-primary fill-brand-primary/10" />
+        </motion.div>
+      </div>
+
+      {/* Floating Elements */}
+      {[...Array(3)].map((_, i) => (
+        <motion.div
+          key={i}
+          animate={{
+            y: [0, -20, 0],
+            x: [0, 10, 0],
+          }}
+          transition={{
+            duration: 4 + i,
+            repeat: Infinity,
+            delay: i * 0.5,
+          }}
+          className={`absolute w-12 h-12 bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-brand-dark/5 flex items-center justify-center text-brand-primary
+            ${i === 0 ? 'top-10 left-10' : i === 1 ? 'bottom-20 right-10' : 'top-1/4 right-0'}`}
+        >
+          {i === 0 ? <Code2 className="w-5 h-5" /> : i === 1 ? <Cpu className="w-5 h-5" /> : <MapIcon className="w-5 h-5" />}
+        </motion.div>
+      ))}
+    </div>
+  </div>
+);
+
 export default function App() {
   return (
     <div className="min-h-screen bg-brand-surface selection:bg-brand-primary selection:text-white">
       <Navbar />
 
-      {/* Hero Section - Modern Professional */}
-      <header className="pt-40 pb-20 px-8 max-w-[1800px] mx-auto relative">
+      {/* Hero Section - Balanced Two-Column */}
+      <header className="pt-40 pb-20 px-8 max-w-[1800px] mx-auto relative overflow-hidden">
         <div className="absolute top-40 right-0 w-1/3 h-[600px] bg-brand-primary/5 blur-[120px] rounded-full pointer-events-none" />
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
-          <div className="lg:col-span-7">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-            >
-              <div className="flex items-center gap-3 mb-8">
-                <span className="w-12 h-px bg-brand-primary" />
-                <span className="font-mono text-[10px] text-brand-primary font-bold tracking-[0.3em] uppercase">Digital Solution Studio</span>
-              </div>
-              <h1 className="text-6xl md:text-8xl font-serif italic leading-[1.1] tracking-tight text-brand-dark mb-10">
-                Elevating <span className="text-brand-primary">Digital</span> <br />
-                Presence with <br />
-                Precision.
-              </h1>
-              <p className="text-xl text-brand-gray max-w-xl leading-relaxed mb-12">
-                SKALADES adalah studio pengembangan digital yang berfokus pada solusi web kustom, integrasi AI, dan sistem informasi geografis. Kami membangun ekosistem digital yang siap tumbuh bersama visi Anda.
-              </p>
-              <div className="flex flex-wrap gap-6">
-                <a href="#contact" className="px-10 py-4 bg-brand-primary text-white font-bold uppercase tracking-widest text-xs rounded-full flex items-center gap-3 hover:bg-brand-dark transition-all shadow-xl shadow-brand-primary/20 group">
-                  Start a Project <ArrowUpRight className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                </a>
-                <a href="#portfolio" className="px-10 py-4 border border-brand-dark/10 text-brand-dark font-bold uppercase tracking-widest text-xs rounded-full hover:bg-white transition-all">
-                  Our Works
-                </a>
-              </div>
-            </motion.div>
-          </div>
-          <div className="lg:col-span-5 relative">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 1, delay: 0.2 }}
-              className="relative z-10 aspect-square bg-white rounded-3xl p-12 shadow-2xl border border-brand-dark/5"
-            >
-              <div className="technical-grid absolute inset-0 opacity-20 rounded-3xl" />
-              <div className="relative h-full flex flex-col justify-between">
-                <div className="flex justify-between items-start">
-                  <div className="space-y-1">
-                    <div className="text-[10px] font-mono text-brand-gray uppercase tracking-widest">System Status</div>
-                    <div className="flex items-center gap-2 text-brand-accent font-bold text-xs uppercase">
-                      <div className="w-2 h-2 bg-brand-accent rounded-full animate-pulse" />
-                      Operational
-                    </div>
-                  </div>
-                  <Box className="w-8 h-8 text-brand-primary opacity-20" />
-                </div>
-                
-                <div className="space-y-6">
-                  <div className="h-2 bg-brand-primary/10 rounded-full overflow-hidden">
-                    <motion.div 
-                      initial={{ width: 0 }}
-                      animate={{ width: "70%" }}
-                      transition={{ duration: 2, repeat: Infinity, repeatType: "reverse" }}
-                      className="h-full bg-brand-primary"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-brand-surface rounded-xl border border-brand-dark/5">
-                      <div className="text-[10px] font-mono text-brand-gray uppercase mb-2">Projects</div>
-                      <div className="text-2xl font-bold text-brand-dark">42+</div>
-                    </div>
-                    <div className="p-4 bg-brand-surface rounded-xl border border-brand-dark/5">
-                      <div className="text-[10px] font-mono text-brand-gray uppercase mb-2">Efficiency</div>
-                      <div className="text-2xl font-bold text-brand-dark">99%</div>
-                    </div>
-                  </div>
-                </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8 }}
+            className="relative z-10"
+          >
+            <div className="flex items-center gap-3 mb-8">
+              <span className="w-12 h-px bg-brand-primary" />
+              <span className="font-mono text-[10px] text-brand-primary font-bold tracking-[0.3em] uppercase">Digital Solution Studio</span>
+            </div>
+            <h1 className="text-6xl md:text-7xl lg:text-8xl font-serif italic leading-[1.1] tracking-tight text-brand-dark mb-10">
+              Elevating <span className="text-brand-primary">Digital</span> <br />
+              Presence with <br />
+              Precision.
+            </h1>
+            <p className="text-xl text-brand-gray max-w-xl leading-relaxed mb-12">
+              SKALADES adalah studio pengembangan digital yang berfokus pada solusi web kustom, integrasi AI, dan sistem informasi geografis. Kami membangun ekosistem digital yang siap tumbuh bersama visi Anda.
+            </p>
+            <div className="flex flex-wrap gap-6">
+              <a href="#contact" className="px-10 py-4 bg-brand-primary text-white font-bold uppercase tracking-widest text-xs rounded-full flex items-center gap-3 hover:bg-brand-dark transition-all shadow-xl shadow-brand-primary/20 group">
+                Start a Project <ArrowUpRight className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+              </a>
+              <a href="#portfolio" className="px-10 py-4 border border-brand-dark/10 text-brand-dark font-bold uppercase tracking-widest text-xs rounded-full hover:bg-white transition-all">
+                Our Works
+              </a>
+            </div>
+          </motion.div>
 
-                <div className="flex items-center gap-4 pt-8 border-t border-brand-dark/5">
-                  <div className="w-10 h-10 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary">
-                    <CheckCircle2 className="w-5 h-5" />
-                  </div>
-                  <div className="text-xs font-medium text-brand-dark/60">
-                    Trusted by 20+ communities <br /> across Indonesia.
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="relative"
+          >
+            <AbstractVisual />
+          </motion.div>
         </div>
       </header>
 
@@ -217,7 +241,8 @@ export default function App() {
       <section id="services" className="py-32 px-8 max-w-[1800px] mx-auto">
         <div className="text-center mb-20">
           <span className="font-mono text-[10px] text-brand-primary font-bold tracking-[0.3em] uppercase mb-4 block">Our Expertise</span>
-          <h2 className="text-5xl md:text-6xl font-serif italic tracking-tight text-brand-dark">Professional Services</h2>
+          <h2 className="text-5xl md:text-6xl font-serif italic tracking-tight text-brand-dark">Jasa Pembuatan Website</h2>
+          <p className="mt-4 text-brand-gray max-w-2xl mx-auto">Solusi digital profesional untuk meningkatkan skala bisnis Anda.</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           {SERVICES.map((service) => (
