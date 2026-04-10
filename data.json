@@ -1,0 +1,93 @@
+{
+  "hero": {
+    "subtitle": "Next-Gen Digital Studio",
+    "title": "Crafting Infinite Digital Future.",
+    "description": "SKALADES is a boutique technology studio specializing in high-end web experiences, AI-driven automation, and modular systems that scale with your vision.",
+    "buttonPrimary": "Explore Our Ecosystem",
+    "buttonSecondary": "View Works"
+  },
+  "services": [
+    {
+      "id": "01",
+      "title": "Digital Experience",
+      "description": "Immersive landing pages and company profiles that captivate your audience from the first frame.",
+      "image": "/src/assets/service_web.png",
+      "features": ["High-End Visuals", "Motion Experience", "SEO Mastery"],
+      "color": "neon-purple"
+    },
+    {
+      "id": "02",
+      "title": "E-Commerce Studio",
+      "description": "Scale your revenue with high-conversion online stores integrated with global payment systems.",
+      "image": "/src/assets/service_ecommerce.png",
+      "features": ["Custom Checkout", "Inventory Sync", "Conversion Focus"],
+      "color": "neon-cyan"
+    },
+    {
+      "id": "03",
+      "title": "AI & Custom Systems",
+      "description": "Bespoke software solutions and AI integrations designed to automate and optimize your workflows.",
+      "image": "/src/assets/service_custom.png",
+      "features": ["AI Integration", "Data Architecture", "Cloud Scaling"],
+      "color": "neon-emerald"
+    }
+  ],
+  "products": [
+    { 
+      "id": "p1",
+      "name": "PDL GEMICONOTA", 
+      "description": "Professional-grade field shirt for geology & mining professionals.", 
+      "status": "Pre-Order", 
+      "price": 249000,
+      "priceDisplay": "IDR 249K",
+      "image": "/src/assets/product_pdl.png"
+    },
+    { 
+      "id": "p2",
+      "name": "Cyber Compass Tee", 
+      "description": "Premium heavy cotton with minimalist neon geological branding.", 
+      "status": "Available", 
+      "price": 129000,
+      "priceDisplay": "IDR 129K",
+      "image": "/src/assets/product_tshirt.png"
+    },
+    { 
+      "id": "p3",
+      "name": "Studio Essentials", 
+      "description": "Matte black architectural mug and sleek obsidian keychain set.", 
+      "status": "Available", 
+      "price": 189000,
+      "priceDisplay": "IDR 189K",
+      "image": "/src/assets/product_merch.png"
+    }
+  ],
+  "portfolio": [
+    { 
+      "id": "pf1",
+      "title": "Nutrizi", 
+      "category": "Logistics System",
+      "description": "A comprehensive management platform for large-scale nutritional programs.", 
+      "year": "2025",
+      "image": "/src/assets/portfolio_nutrizi.png",
+      "link": "#"
+    },
+    { 
+      "id": "pf2",
+      "title": "ROXY-VTX", 
+      "category": "AI Beauty Tech",
+      "description": "Cutting-edge hairstyle recommendation and virtual try-on using Computer Vision.", 
+      "year": "2024",
+      "image": "/src/assets/portfolio_roxy.png",
+      "link": "#"
+    },
+    { 
+      "id": "pf3",
+      "title": "PANDA Foundation", 
+      "category": "Digital Ecosystem",
+      "description": "Connecting communities and non-profits through an integrated digital platform.", 
+      "year": "2024",
+      "image": "/src/assets/portfolio_panda.png",
+      "link": "#"
+    }
+  ]
+}
