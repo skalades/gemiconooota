@@ -39,7 +39,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ 
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB limit
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB limit
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
@@ -139,11 +139,14 @@ app.put('/api/content', authenticate, async (req, res) => {
 
     for (const prod of newData.products) {
       if(prod.id) {
+         const hasSizes = !!prod.has_sizes;
+         console.log(`Updating product ${prod.id}: has_sizes = ${hasSizes}`);
          await db('products').where({ id: prod.id }).update({
             name: prod.name,
             price: prod.price,
             description: prod.description,
             status: prod.status,
+            has_sizes: hasSizes ? 1 : 0,
             image: prod.image,
             priceDisplay: `IDR ${Math.round(prod.price / 1000)}K`
          });
@@ -157,10 +160,41 @@ app.put('/api/content', authenticate, async (req, res) => {
   }
 });
 
+app.post('/api/admin/products', authenticate, async (req, res) => {
+  try {
+    const newId = `p${Date.now()}`;
+    await db('products').insert({
+      id: newId,
+      name: "New Merchandise Item",
+      price: 150000,
+      description: "Enter product description here.",
+      status: "Available",
+      has_sizes: false,
+      image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&q=80",
+      priceDisplay: "IDR 150K"
+    });
+    res.json({ id: newId, message: 'New product created' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to create product' });
+  }
+});
+
+app.delete('/api/admin/products/:id', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db('products').where({ id }).delete();
+    res.json({ message: 'Product deleted successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to delete product' });
+  }
+});
+
 // 4. Checkout API
 app.post('/api/checkout', async (req, res) => {
   try {
-    const { product } = req.body;
+    const { product, customer } = req.body;
     
     // Dynamically retrieve keys and trim hidden whitespaces from copy-pasting
     const settings = await db('payment_settings').first();
@@ -172,13 +206,18 @@ app.post('/api/checkout', async (req, res) => {
 
     const order_id = `SKLDS-${Date.now()}`;
 
-    // Record pending transaction
+    const productDetails = await db('products').where({ id: product.id }).first();
+    const finalSize = productDetails?.has_sizes ? (customer.size || 'L') : '-';
+
+    // Record pending transaction with customer details
     await db('transactions').insert({
       order_id,
-      customer_name: "Tamu Skalades",
-      customer_email: "tamu@skalades.id",
+      customer_name: customer.name || "Tamu",
+      customer_email: customer.email || "guest@skalades.id",
+      customer_whatsapp: customer.whatsapp,
       product_id: product.id,
       product_name: product.name,
+      product_size: finalSize,
       gross_amount: product.price,
       status: 'pending'
     });
@@ -192,13 +231,13 @@ app.post('/api/checkout', async (req, res) => {
         id: product.id,
         price: product.price,
         quantity: 1,
-        name: product.name
+        name: `${product.name}${customer.size ? ' (Size ' + customer.size + ')' : ''}`
       }],
       customer_details: {
-        first_name: "Tamu",
-        last_name: "Skalades",
-        email: "tamu@skalades.id",
-        phone: "08111222333"
+        first_name: customer.name.split(' ')[0] || "Tamu",
+        last_name: customer.name.split(' ').slice(1).join(' ') || "",
+        email: customer.email || "guest@skalades.id",
+        phone: customer.whatsapp
       }
     };
     
@@ -211,17 +250,25 @@ app.post('/api/checkout', async (req, res) => {
 });
 
 // 5. Upload File Endpoint (Protected)
-app.post('/api/upload', authenticate, upload.single('image'), (req, res) => {
-  try {
+app.post('/api/upload', authenticate, (req, res, next) => {
+  upload.single('image')(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      // A Multer error occurred when uploading.
+      console.error("Multer Error:", err);
+      return res.status(400).json({ error: 'Upload error', details: err.message });
+    } else if (err) {
+      // An unknown error occurred when uploading.
+      console.error("Upload Error:", err);
+      return res.status(500).json({ error: 'Server error during upload', details: err.message });
+    }
+    
+    // Everything went fine.
     if (!req.file) {
       return res.status(400).json({ error: 'No image file provided' });
     }
     const imageUrl = `/uploads/${req.file.filename}`;
     res.json({ url: imageUrl, message: 'Image uploaded successfully' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to process image upload', details: err.message });
-  }
+  });
 });
 
 // 6. Admin Payment Config (Protected)
@@ -246,6 +293,107 @@ app.put('/api/admin/payment', authenticate, async (req, res) => {
   } catch(e) {
      console.error("error updating settings", e);
      res.status(500).json({ error: 'Failed to update settings' });
+  }
+});
+
+// 8. Alumni Management & Social Verification
+app.get('/api/alumni/challenge', async (req, res) => {
+  try {
+    const { batch } = req.query;
+    if (!batch) return res.status(400).json({ error: 'Batch year required' });
+
+    // Get real alumni from the same batch (approved only)
+    const realAlumni = await db('alumni')
+      .where({ batch_year: batch, status: 'approved' })
+      .select('full_name')
+      .orderByRaw('RAND()')
+      .limit(3);
+
+    // Get decoys (random names from other batches)
+    const decoys = await db('alumni')
+      .whereNot({ batch_year: batch })
+      .select('full_name')
+      .orderByRaw('RAND()')
+      .limit(2);
+
+    // If not enough decoys in DB, use static common names
+    const fallbackDecoys = ["Budi Santoso", "Siti Aminah", "Joko Widodo", "Rina Wijaya", "Andi Pratama"];
+    const finalDecoys = [...decoys.map(d => d.full_name)];
+    while(finalDecoys.length < 2) {
+      const name = fallbackDecoys[Math.floor(Math.random() * fallbackDecoys.length)];
+      if(!finalDecoys.includes(name)) finalDecoys.push(name);
+    }
+
+    const challenge = {
+      required: realAlumni.length >= 3,
+      names: [...realAlumni.map(a => a.full_name), ...finalDecoys].sort(() => Math.random() - 0.5),
+      realNames: realAlumni.map(a => a.full_name)
+    };
+
+    res.json(challenge);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to generate challenge' });
+  }
+});
+
+app.post('/api/alumni/register', async (req, res) => {
+  try {
+    const { fullName, whatsapp, batchYear, location, job, answers } = req.body;
+    
+    // Server-side verification of answers if batch has enough data
+    const realAlumni = await db('alumni')
+      .where({ batch_year: batchYear, status: 'approved' })
+      .select('full_name');
+    
+    let status = 'pending';
+    const realNamesInBatch = realAlumni.map(a => a.full_name);
+
+    if (realNamesInBatch.length >= 3 && answers && answers.length === 3) {
+      const correctCount = answers.filter(name => realNamesInBatch.includes(name)).length;
+      if (correctCount === 3) {
+        status = 'approved';
+      }
+    }
+
+    await db('alumni').insert({
+      full_name: fullName,
+      whatsapp,
+      batch_year: batchYear,
+      location,
+      job,
+      status
+    });
+
+    res.json({ 
+      message: status === 'approved' ? 'Welcome! You are auto-verified.' : 'Registration received. Admin will verify your data soon.',
+      status 
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Registration failed' });
+  }
+});
+
+app.get('/api/admin/alumni', authenticate, async (req, res) => {
+  try {
+    const alumni = await db('alumni').orderBy('created_at', 'desc');
+    res.json(alumni);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch alumni' });
+  }
+});
+
+app.put('/api/admin/alumni/:id/status', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    await db('alumni').where({ id }).update({ status });
+    res.json({ message: `Alumni status updated to ${status}` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update alumni status' });
   }
 });
 

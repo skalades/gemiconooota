@@ -60,7 +60,9 @@ const Navbar = () => {
         </div>
 
         <div className="flex items-center gap-4">
+          <button onClick={() => setIsAlumniModalOpen(true)} className="hidden sm:block glass-button px-4 border-gem-gold/30 text-gem-gold">Join Network</button>
           <a href="/admin/dashboard" className="hidden sm:block glass-button px-4">Admin UI</a>
+
           <button className="hidden sm:block neon-button">Start Project</button>
           <button 
             className="lg:hidden w-10 h-10 flex items-center justify-center text-white/70"
@@ -122,6 +124,20 @@ const SectionTitle = ({ subtitle, title, centered = false }: { subtitle: string,
 
 export default function LandingPage() {
   const [data, setData] = useState<any>(null);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [customerInfo, setCustomerInfo] = useState({ name: '', email: '', whatsapp: '', size: 'L' });
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+
+  // Alumni States
+  const [isAlumniModalOpen, setIsAlumniModalOpen] = useState(false);
+  const [alumniStep, setAlumniStep] = useState(1); // 1: Info, 2: Challenge, 3: Success
+  const [alumniInfo, setAlumniInfo] = useState({ fullName: '', whatsapp: '', batchYear: '', location: '', job: '' });
+  const [challenge, setChallenge] = useState<any>(null);
+  const [selectedAnswers, setSelectedAnswers] = useState<string[]>([]);
+  const [alumniLoading, setAlumniLoading] = useState(false);
+
+
 
   useEffect(() => {
     // Fetch data from backend
@@ -148,12 +164,29 @@ export default function LandingPage() {
       .catch(err => console.error('Failed to load Midtrans config', err));
   }, []);
 
-  const handleCheckout = async (product: any) => {
+  const handleCheckout = async () => {
+    if (!customerInfo.name || !customerInfo.whatsapp) {
+      alert("Please fill in your name and WhatsApp number.");
+      return;
+    }
+    
+    setCheckoutLoading(true);
     try {
-      const res = await axios.post('http://localhost:3001/api/checkout', { product });
+      const res = await axios.post('http://localhost:3001/api/checkout', { 
+        product: selectedProduct,
+        customer: {
+          ...customerInfo,
+          size: selectedProduct.has_sizes ? customerInfo.size : '-' // Ensure clean data
+        }
+      });
+
       const { token } = res.data;
       if (token && window.snap) {
-        window.snap.pay(token);
+        window.snap.pay(token, {
+          onSuccess: () => { setIsCheckoutOpen(false); },
+          onPending: () => { setIsCheckoutOpen(false); },
+          onClose: () => { setIsCheckoutOpen(false); }
+        });
       } else {
         alert("Payment module is not loaded yet.");
       }
@@ -161,7 +194,56 @@ export default function LandingPage() {
       console.error(err);
       alert('Failed to init checkout');
     }
+    setCheckoutLoading(false);
   };
+
+  const openCheckout = (product: any) => {
+    setSelectedProduct(product);
+    setCustomerInfo({ ...customerInfo, size: product.has_sizes ? 'L' : '-' }); // Reset size state
+    setIsCheckoutOpen(true);
+  };
+
+
+  const handleAlumniNext = async () => {
+    if (alumniStep === 1) {
+       if (!alumniInfo.fullName || !alumniInfo.whatsapp || !alumniInfo.batchYear) {
+         alert("Please fill in required fields.");
+         return;
+       }
+       setAlumniLoading(true);
+       try {
+         const res = await axios.get(`http://localhost:3001/api/alumni/challenge?batch=${alumniInfo.batchYear}`);
+         setChallenge(res.data);
+         if (res.data.required) {
+            setAlumniStep(2);
+         } else {
+            // No challenge needed (manual verification)
+            submitAlumni();
+         }
+       } catch (err) {
+         console.error(err);
+         alert("Failed to reach network server.");
+       }
+       setAlumniLoading(false);
+    }
+  };
+
+  const submitAlumni = async () => {
+    setAlumniLoading(true);
+    try {
+      const res = await axios.post('http://localhost:3001/api/alumni/register', {
+        ...alumniInfo,
+        answers: selectedAnswers
+      });
+      setAlumniStep(3);
+    } catch (err) {
+      console.error(err);
+      alert("Registration failed.");
+    }
+    setAlumniLoading(false);
+  };
+
+
 
   if (!data) {
     return <div className="min-h-screen bg-obsidian flex items-center justify-center text-gem-gold">Loading system...</div>;
@@ -284,7 +366,8 @@ export default function LandingPage() {
                 </div>
                 <h4 className="text-xl font-bold mb-2">{product.name}</h4>
                 <p className="text-white/30 text-xs mb-8">{product.description}</p>
-                <button onClick={() => handleCheckout(product)} className="w-full py-4 glass-button hover:bg-gem-gold hover:text-obsidian hover:border-gem-gold transition-all flex items-center justify-center gap-3">
+                <button onClick={() => openCheckout(product)} className="w-full py-4 glass-button hover:bg-gem-gold hover:text-obsidian hover:border-gem-gold transition-all flex items-center justify-center gap-3">
+
 
                    <ShoppingBag className="w-4 h-4" /> Order Drop
                 </button>
@@ -293,6 +376,242 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* Checkout Modal */}
+      <AnimatePresence>
+        {isCheckoutOpen && selectedProduct && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              onClick={() => setIsCheckoutOpen(false)}
+              className="absolute inset-0 bg-obsidian/80 backdrop-blur-xl" 
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-lg glass-card p-10 border-white/5 shadow-2xl overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 w-full h-1 bg-gem-gold" />
+              
+              <div className="flex justify-between items-start mb-8">
+                <div>
+                  <h3 className="text-2xl font-display font-bold text-white mb-2">Finalize Your Order</h3>
+                  <p className="text-white/40 text-xs">Enter your details to proceed with {selectedProduct.name}</p>
+                </div>
+                <button onClick={() => setIsCheckoutOpen(false)} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/40 hover:text-white transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">Full Name</label>
+                  <input 
+                    type="text" 
+                    placeholder="Enter your full name"
+                    value={customerInfo.name}
+                    onChange={e => setCustomerInfo({...customerInfo, name: e.target.value})}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-gem-gold transition-all" 
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">WhatsApp Number</label>
+                    <input 
+                      type="tel" 
+                      placeholder="e.g. 0812..."
+                      value={customerInfo.whatsapp}
+                      onChange={e => setCustomerInfo({...customerInfo, whatsapp: e.target.value})}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-gem-gold transition-all" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">Email (Optional)</label>
+                    <input 
+                      type="email" 
+                      placeholder="Enter your email"
+                      value={customerInfo.email}
+                      onChange={e => setCustomerInfo({...customerInfo, email: e.target.value})}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-gem-gold transition-all" 
+                    />
+                  </div>
+                </div>
+
+                {!!selectedProduct.has_sizes && (
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">Select Shirt Size</label>
+                    <div className="grid grid-cols-6 gap-2">
+                      {['S', 'M', 'L', 'XL', 'XXL', '3XL'].map(size => (
+                        <button 
+                          key={size}
+                          onClick={() => setCustomerInfo({...customerInfo, size: size})}
+                          className={`py-2 rounded-lg border text-[10px] font-bold transition-all ${
+                            customerInfo.size === size 
+                              ? 'bg-gem-gold/20 border-gem-gold text-gem-gold' 
+                              : 'bg-white/5 border-white/10 text-white/40 hover:border-white/20'
+                          }`}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="pt-4">
+                  <button 
+                    onClick={handleCheckout}
+                    disabled={checkoutLoading}
+                    className="w-full neon-button py-5 flex items-center justify-center gap-3 group"
+                  >
+                    {checkoutLoading ? 'INITIALIZING...' : (
+                      <>
+                        <Zap className="w-4 h-4" /> SECURE CHECKOUT (IDR {selectedProduct.priceDisplay})
+                      </>
+                    )}
+                  </button>
+                  <p className="text-[10px] text-center text-white/20 mt-4 uppercase tracking-[0.2em]">Secure payment via Midtrans Snap</p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Alumni Registration Modal */}
+      <AnimatePresence>
+        {isAlumniModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              onClick={() => setIsAlumniModalOpen(false)}
+              className="absolute inset-0 bg-obsidian/90 backdrop-blur-2xl" 
+            />
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 30 }}
+              className="relative w-full max-w-xl glass-card p-12 border-white/5"
+            >
+              <div className="absolute top-0 left-0 w-full h-1 bg-gem-gold" />
+              
+              <button onClick={() => setIsAlumniModalOpen(false)} className="absolute top-8 right-8 text-white/20 hover:text-white transition-colors">
+                 <X className="w-6 h-6" />
+              </button>
+
+              {alumniStep === 1 && (
+                <div className="space-y-8">
+                  <header>
+                    <h3 className="text-3xl font-display font-bold text-white mb-2">Join GEMICONOTA</h3>
+                    <p className="text-white/40 text-sm">Create your profile to access the alumni network.</p>
+                  </header>
+
+                  <div className="space-y-5">
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">Full Legal Name</label>
+                       <input type="text" value={alumniInfo.fullName} onChange={e => setAlumniInfo({...alumniInfo, fullName: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-gem-gold outline-none" placeholder="Enter your full name" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                       <div className="space-y-2">
+                          <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">WhatsApp</label>
+                          <input type="tel" value={alumniInfo.whatsapp} onChange={e => setAlumniInfo({...alumniInfo, whatsapp: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-gem-gold outline-none" placeholder="0812..." />
+                       </div>
+                       <div className="space-y-2">
+                          <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">Batch Year</label>
+                          <input type="number" value={alumniInfo.batchYear} onChange={e => setAlumniInfo({...alumniInfo, batchYear: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-gem-gold outline-none" placeholder="Ex: 2018" />
+                       </div>
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">Current Location (City)</label>
+                       <input type="text" value={alumniInfo.location} onChange={e => setAlumniInfo({...alumniInfo, location: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-gem-gold outline-none" placeholder="Jakarta, Indonesia" />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 p-4 bg-gem-gold/10 border border-gem-gold/20 rounded-xl">
+                     <CheckCircle2 className="w-5 h-5 text-gem-gold flex-shrink-0" />
+                     <p className="text-[10px] text-gem-gold font-bold leading-relaxed">
+                       I declare that the data provided is accurate. Fraudulent data will result in permanent network exclusion.
+                     </p>
+                  </div>
+
+                  <button 
+                    onClick={handleAlumniNext}
+                    disabled={alumniLoading}
+                    className="w-full neon-button py-5 text-sm font-bold flex items-center justify-center gap-3"
+                  >
+                    {alumniLoading ? 'INITIALIZING NETWORK...' : 'CONTINUE TO VERIFICATION'}
+                  </button>
+                </div>
+              )}
+
+              {alumniStep === 2 && challenge && (
+                <div className="space-y-8">
+                  <header>
+                    <h3 className="text-3xl font-display font-bold text-white mb-2">Social Challenge</h3>
+                    <p className="text-white/40 text-sm leading-relaxed">
+                      Select 3 people who were in the <strong>Batch of {alumniInfo.batchYear}</strong> with you. 
+                      Correct identification will grant auto-verification.
+                    </p>
+                  </header>
+
+                  <div className="space-y-3">
+                    {challenge.names.map((name: string) => (
+                      <button 
+                        key={name}
+                        onClick={() => {
+                           if (selectedAnswers.includes(name)) {
+                             setSelectedAnswers(selectedAnswers.filter(a => a !== name));
+                           } else if (selectedAnswers.length < 3) {
+                             setSelectedAnswers([...selectedAnswers, name]);
+                           }
+                        }}
+                        className={`w-full p-4 rounded-xl border text-left flex justify-between items-center transition-all ${
+                          selectedAnswers.includes(name) 
+                            ? 'bg-gem-gold/20 border-gem-gold text-white' 
+                            : 'bg-white/5 border-white/10 text-white/40 hover:border-white/20'
+                        }`}
+                      >
+                         <span className="font-bold">{name}</span>
+                         {selectedAnswers.includes(name) && <CheckCircle2 className="w-4 h-4 text-gem-gold" />}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button 
+                    onClick={submitAlumni}
+                    disabled={alumniLoading || selectedAnswers.length < 3}
+                    className="w-full neon-button py-5 text-sm font-bold disabled:opacity-50"
+                  >
+                    {alumniLoading ? 'VERIFYING...' : 'COMPLETE REGISTRATION'}
+                  </button>
+                </div>
+              )}
+
+              {alumniStep === 3 && (
+                <div className="text-center space-y-8 py-10">
+                   <div className="w-20 h-20 bg-gem-emerald/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <CheckCircle2 className="w-10 h-10 text-gem-emerald" />
+                   </div>
+                   <h3 className="text-3xl font-display font-bold text-white">Identity Logged</h3>
+                   <p className="text-white/40 max-w-sm mx-auto leading-relaxed">
+                     Thank you for joining. If you passed the social verification, your profile is now live. 
+                     Otherwise, an admin will review your data within 24 hours.
+                   </p>
+                   <button onClick={() => setIsAlumniModalOpen(false)} className="px-10 py-4 glass-button w-full">CLOSE</button>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+
 
       {/* Footer... (kept abbreviated for simplicity) */}
       <footer className="bg-obsidian pt-12 pb-12 border-t border-white/5 text-center">

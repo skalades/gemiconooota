@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Home, ShoppingBag, Layout, Save, LogOut, CreditCard } from 'lucide-react';
+import { Home, ShoppingBag, Layout, Save, LogOut, CreditCard, Users, Plus, Trash2 } from 'lucide-react';
 
 export default function AdminDashboard() {
   const [data, setData] = useState<any>(null);
   const [paymentData, setPaymentData] = useState<any>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [alumni, setAlumni] = useState<any[]>([]);
   const [revenue, setRevenue] = useState<any>(null);
   const [activeTab, setActiveTab] = useState('revenue');
+
   const [loading, setLoading] = useState(false);
   const [uploadingImageId, setUploadingImageId] = useState<string | null>(null);
 
@@ -30,8 +32,12 @@ export default function AdminDashboard() {
       const transRes = await axios.get('http://localhost:3001/api/admin/transactions', authHeader);
       setTransactions(transRes.data);
 
+      const alumniRes = await axios.get('http://localhost:3001/api/admin/alumni', authHeader);
+      setAlumni(alumniRes.data);
+
       const revRes = await axios.get('http://localhost:3001/api/admin/analytics/revenue', authHeader);
       setRevenue(revRes.data);
+
 
     } catch (err) {
       console.error(err);
@@ -71,6 +77,52 @@ export default function AdminDashboard() {
     }
   };
 
+  const updateAlumniStatus = async (id: number, status: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(`http://localhost:3001/api/admin/alumni/${id}/status`, { status }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to update alumni');
+    }
+  };
+
+
+
+  const addNewProduct = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post('http://localhost:3001/api/admin/products', {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchData(); // Reload to get the new product with ID
+    } catch (err) {
+      console.error(err);
+      alert('Failed to add product');
+    }
+    setLoading(false);
+  };
+
+  const deleteProduct = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this product?")) return;
+    
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`http://localhost:3001/api/admin/products/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to delete product');
+    }
+    setLoading(false);
+  };
 
   const logout = () => {
     localStorage.removeItem('token');
@@ -97,9 +149,10 @@ export default function AdminDashboard() {
       const resolvedUrl = res.data.url.startsWith('http') ? res.data.url : `http://localhost:3001${res.data.url}`;
       newP[index].image = resolvedUrl;
       setData({...data, products: newP});
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Failed to upload image');
+      const msg = err.response?.data?.details || err.response?.data?.error || 'Failed to upload image';
+      alert(`Upload Error: ${msg}`);
     }
     setUploadingImageId(null);
   };
@@ -129,6 +182,12 @@ export default function AdminDashboard() {
               className={`w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 text-sm font-bold transition-all ${activeTab === 'transactions' ? 'bg-gem-gold/20 text-gem-gold border border-gem-gold/30' : 'text-white/40 hover:text-white'}`}
             >
                <CreditCard className="w-4 h-4" /> Order Logistics
+            </button>
+            <button 
+              onClick={() => setActiveTab('alumni')}
+              className={`w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 text-sm font-bold transition-all ${activeTab === 'alumni' ? 'bg-gem-gold/20 text-gem-gold border border-gem-gold/30' : 'text-white/40 hover:text-white'}`}
+            >
+               <Users className="w-4 h-4" /> Alumni Network
             </button>
             <button 
               onClick={() => setActiveTab('hero')}
@@ -188,11 +247,23 @@ export default function AdminDashboard() {
               </div>
            )}
 
-           {activeTab === 'products' && (
-              <div className="space-y-8">
-                 {data.products.map((p: any, index: number) => (
-                    <div key={p.id} className="p-6 bg-white/5 border border-white/10 rounded-2xl flex gap-6 items-start">
-                       <img src={p.image} alt="preview" className="w-24 h-24 rounded-lg object-cover bg-black" />
+            {activeTab === 'products' && (
+               <div className="space-y-8">
+                  <div className="flex justify-end">
+                    <button onClick={addNewProduct} className="flex items-center gap-2 bg-gem-gold/20 text-gem-gold border border-gem-gold/30 px-5 py-3 rounded-xl font-bold hover:bg-gem-gold hover:text-obsidian transition-all">
+                       <Plus className="w-4 h-4" /> ADD NEW MERCHANDISE
+                    </button>
+                  </div>
+                  {data.products.map((p: any, index: number) => (
+                     <div key={p.id} className="p-6 bg-white/5 border border-white/10 rounded-2xl flex gap-6 items-start relative">
+                        <button 
+                          onClick={() => deleteProduct(p.id)}
+                          className="absolute top-6 right-6 p-2 text-white/20 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                          title="Delete Product"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                        <img src={p.image} alt="preview" className="w-24 h-24 rounded-lg object-cover bg-black" />
                        <div className="flex-1 space-y-4">
                           <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
@@ -221,6 +292,23 @@ export default function AdminDashboard() {
                                  <option value="Available">Available</option>
                                  <option value="Pre-Order">Pre-Order</option>
                               </select>
+                            </div>
+                            <div className="space-y-2">
+                               <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">Size Selection</label>
+                               <button 
+                                 onClick={() => {
+                                   const newP = [...data.products];
+                                   newP[index].has_sizes = !newP[index].has_sizes;
+                                   setData({...data, products: newP});
+                                 }}
+                                 className={`w-full px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all border ${
+                                   !!p.has_sizes 
+                                     ? 'bg-gem-emerald/20 text-gem-emerald border-gem-emerald/30' 
+                                     : 'bg-red-500/10 text-red-400 border-red-500/20 hover:border-red-500/40'
+                                 }`}
+                               >
+                                 {!!p.has_sizes ? '✅ SIZING ENABLED' : '❌ NO SIZE SELECTION'}
+                               </button>
                             </div>
                             <div className="space-y-2">
                               <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">Product Image</label>
@@ -302,7 +390,9 @@ export default function AdminDashboard() {
                         <tr>
                           <th className="px-6 py-4">Order ID</th>
                           <th className="px-6 py-4">Customer</th>
+                          <th className="px-6 py-4">Contact</th>
                           <th className="px-6 py-4">Product</th>
+                          <th className="px-6 py-4">Size</th>
                           <th className="px-6 py-4">Total</th>
                           <th className="px-6 py-4">Payment</th>
                           <th className="px-6 py-4">Logistics</th>
@@ -317,7 +407,15 @@ export default function AdminDashboard() {
                                <div className="font-bold text-white">{t.customer_name}</div>
                                <div className="text-[10px] text-white/30">{t.customer_email}</div>
                              </td>
+                             <td className="px-6 py-4">
+                               <div className="font-mono text-xs text-gem-gold">{t.customer_whatsapp}</div>
+                             </td>
                              <td className="px-6 py-4 font-bold text-white/70">{t.product_name}</td>
+                             <td className="px-6 py-4">
+                               <span className="px-2 py-1 rounded bg-white/5 text-[10px] font-bold text-white/60">
+                                 {t.product_size || '-'}
+                               </span>
+                             </td>
                              <td className="px-6 py-4 font-bold text-gem-gold">IDR {(t.gross_amount / 1000).toLocaleString()}K</td>
                              <td className="px-6 py-4">
                                <span className={`px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest ${
@@ -356,7 +454,68 @@ export default function AdminDashboard() {
                </div>
             )}
 
-           {activeTab === 'payment' && paymentData && (
+            {activeTab === 'alumni' && (
+               <div className="space-y-6">
+                  <header className="flex justify-between items-end mb-6">
+                    <div>
+                      <h3 className="text-2xl font-display font-bold text-white">Member Directory</h3>
+                      <p className="text-white/40 text-xs">Verify and manage the alumni community members.</p>
+                    </div>
+                  </header>
+
+                  <div className="overflow-hidden glass-card !rounded-2xl border-white/5">
+                    <table className="w-full text-left text-sm border-collapse">
+                      <thead className="bg-white/5 text-[10px] font-bold uppercase tracking-widest text-white/40">
+                        <tr>
+                          <th className="px-6 py-4">Full Name</th>
+                          <th className="px-6 py-4">Batch</th>
+                          <th className="px-6 py-4">Contact (WA)</th>
+                          <th className="px-6 py-4">Location</th>
+                          <th className="px-6 py-4">Status</th>
+                          <th className="px-6 py-4">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {alumni.map((a:any) => (
+                          <tr key={a.id} className="hover:bg-white/5 transition-colors">
+                             <td className="px-6 py-4 font-bold text-white">{a.full_name}</td>
+                             <td className="px-6 py-4 font-mono text-gem-gold">{a.batch_year}</td>
+                             <td className="px-6 py-4 font-mono text-xs">{a.whatsapp}</td>
+                             <td className="px-6 py-4 text-white/60">{a.location || '-'}</td>
+                             <td className="px-6 py-4">
+                               <span className={`px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest ${
+                                 a.status === 'approved' ? 'bg-gem-emerald/20 text-gem-emerald' : 'bg-gem-gold/20 text-gem-gold'
+                               }`}>
+                                 {a.status}
+                               </span>
+                             </td>
+                             <td className="px-6 py-4">
+                               <div className="flex gap-2">
+                                  {a.status === 'pending' && (
+                                    <button 
+                                      onClick={() => updateAlumniStatus(a.id, 'approved')}
+                                      className="px-3 py-1 bg-gem-emerald/20 text-gem-emerald hover:bg-gem-emerald text-[10px] font-bold rounded transition-colors"
+                                    >
+                                      APPROVE
+                                    </button>
+                                  )}
+                                  <button 
+                                    onClick={() => { if(confirm('Delete member?')) updateAlumniStatus(a.id, 'rejected') }}
+                                    className="px-3 py-1 bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white text-[10px] font-bold rounded transition-colors"
+                                  >
+                                    REMOVE
+                                  </button>
+                               </div>
+                             </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+               </div>
+            )}
+
+            {activeTab === 'payment' && paymentData && (
               <div className="space-y-6 max-w-2xl">
                  <div className="space-y-2">
                     <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">Environment Mode</label>
